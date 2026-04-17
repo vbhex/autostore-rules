@@ -2,7 +2,7 @@
 
 **Applies to**: All AutoStore eBay seller accounts registered as Greater China (China mainland, Hong Kong, Taiwan, Macau) WITHOUT a dedicated eBay account manager.
 
-**Status**: ACTIVE — confirmed 2026-04-17 on account `week2_leayee`. These constraints apply universally to any Greater China seller without account manager enrollment.
+**Status**: ACTIVE — confirmed 2026-04-17 on a live Greater China seller account. These constraints apply universally to any Greater China seller without account manager enrollment.
 
 ---
 
