@@ -1,0 +1,1 @@
+../../../.claude/skills/etsy-listing-upload/SKILL.md

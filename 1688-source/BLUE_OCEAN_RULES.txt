@@ -1,0 +1,6 @@
+1.  we will open lots  of stores in different platforms such as : aliexpress, amazon, esty, ebay, etc..
+2. each platform will have multi-stores;
+3. each store should has a main category, including many sub-categories, currently the opened aliexpress's store 's main category is clothing with accossies, and the sub-categories including wristwatches, eyeglasses, sunglasses, are stored in some special file which you can find them in autostore; currently the opened amazon's store's main category is 3C/consumer electronics, and the sub-categories are empty which need you to reaseach;
+4. currently we only have only one source scrapper, which is 1688-scrapper, the sourced products will be polished and refined for different platfoms' stores to sell.
+5. so I think you should build blue-ocean categories files for each store in each platform, such as, if the opened aliexpress store id is 12345, then the file name should be aliexpress-12345-blue-ocean-categories.md
+6. in db of 1688_scrapper project, you should consider the above structures;
