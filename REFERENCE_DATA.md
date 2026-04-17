@@ -12,7 +12,7 @@ This replaces the previous approach of bundling JSON/CSV files in each project r
 
 ### `ref_ae_categories` — AliExpress Leaf Categories (623 entries)
 
-Source: `documents/aliexpress-store/ae-2087779-categories-tiered.json`
+Source: `documents/aliexpress-store/ae-categories-tiered.json`
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -90,7 +90,7 @@ npx ts-node src/reference/seed-reference-data.ts
 ```
 
 This reads from:
-- `documents/aliexpress-store/ae-2087779-categories-tiered.json`
+- `documents/aliexpress-store/ae-categories-tiered.json`
 - `1688_scrapper/src/data/brands-comprehensive-2026-03-22.csv`
 - `1688_scrapper/src/data/blue-ocean-search-terms.json`
 

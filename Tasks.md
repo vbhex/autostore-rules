@@ -322,7 +322,7 @@ Also: `--list`, `--stats`, `--search "keyword"` for inspection.
     AliExpress            eBay             Etsy               Amazon
     (Excel bulk         (CSV gen        (Etsy API          (flat file TSV
      upload)             + upload)       listing)            + Seller Central)
-    store 2087779        PENDING          PENDING          ATVPDKIKX0DER
+    (store-specific IDs live in documents/ per-platform folders)
 
 
   Amazon 3C supplier pipeline (parallel, runs independently):

@@ -5,7 +5,7 @@
 **Replaces**: 3C / Consumer Electronics (retired — see `PLATFORM_PIVOT_3C_TO_CLOTHING.md`)
 **Platform**: AliExpress (only active platform)
 
-> ⛔ **RED OCEAN RULING (2026-03-20)**: ALL sub-categories under Women's Clothing and Men's Clothing L1 are permanently Red Ocean for AliExpress store 2087779. Do NOT scrape any of them. New targets are Watches, Apparel Accessories, Jewelry, Luggage & Bags, and other non-clothing L1 categories. See `aliexpress-2087779-blue-ocean-categories.md` for the current approved list.
+> ⛔ **RED OCEAN RULING (2026-03-20)**: ALL sub-categories under Women's Clothing and Men's Clothing L1 are permanently Red Ocean for the AliExpress store. Do NOT scrape any of them. New targets are Watches, Apparel Accessories, Jewelry, Luggage & Bags, and other non-clothing L1 categories. Store-specific approved category list lives in `documents/aliexpress-store/` (private).
 
 ---
 
@@ -192,7 +192,7 @@ node dist/tasks/task4-translate.js      --limit 500
 
 - **2026-03-20**: **RED OCEAN RULING** — All Women's Clothing and Men's Clothing L1 sub-categories retired permanently.
   New strategy: target Watches, Apparel Accessories, Jewelry, Luggage & Bags, Shoes, Underwear, World Apparel.
-  See `aliexpress-2087779-blue-ocean-categories.md` for current approved targets.
+  Store-specific approved category list is in `documents/aliexpress-store/` (private).
 - **2026-03-10**: Major pivot — replaced 7 saturated categories with 8 opportunity categories.
   Removed: WomensTops (TShirts), WomensHoodies, MensTShirts, MensHoodies, MensPants, Streetwear.
   Root cause: "too many similar products" rejection from AliExpress on saturated sheets.

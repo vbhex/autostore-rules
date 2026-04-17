@@ -11,7 +11,7 @@
 
 ## Strategy: Cross-List from AliExpress Pipeline
 
-eBay sources from the **same 1688 pipeline** as AliExpress store 2087779. Products already in `authorized_products` are eligible for eBay cross-listing — no re-scraping or re-verification needed.
+eBay sources from the **same 1688 pipeline** as the AliExpress store. Products already in `authorized_products` are eligible for eBay cross-listing — no re-scraping or re-verification needed.
 
 **Key differences from AliExpress:**
 - eBay fees: ~13-15% (final value + payment processing) vs AliExpress ~8%

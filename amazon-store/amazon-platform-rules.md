@@ -1,11 +1,9 @@
-# Amazon Store ATVPDKIKX0DER — Sourcing Strategy
+# Amazon Platform Rules
 
 **Platform**: Amazon
-**Store ID**: `ATVPDKIKX0DER`
-**Store URL**: https://sellercentral.amazon.com/
 **Sourcing method**: Manual seller sourcing (NOT automated 1688 discovery)
-**Pipeline status**: **ACTIVE**
-**Last updated**: 2026-03-28
+
+Store-specific configuration (store/seller IDs, URLs, update log) lives in the private `documents/amazon-store/` folder.
 
 ---
 
@@ -34,7 +32,7 @@ Amazon products come from **manually identified trusted 1688 sellers**.
 
 ## Eligible Categories
 
-Amazon can list products from **any brand-safe category** (see `documents/BRAND_SAFE_CATEGORIES.md`).
+Amazon can list products from **any brand-safe category** (see `rules/BRAND_SAFE_CATEGORIES.md`).
 The specific categories depend on what the manually-sourced sellers carry.
 
 Current brand-safe categories eligible for Amazon:
@@ -117,12 +115,3 @@ ip camera, smart doorbell, soundbar, solar panel, gimbal stabilizer, lavalier mi
 5. Add column definitions to `amazon/src/excel/column-mapping.ts` if needed
 6. Run flat file generation: `node dist/tasks/task1-excel-gen.js`
 7. Upload to Seller Central: `npm run task:upload`
-
----
-
-## Update Log
-
-- **2026-03-20**: File created with 13 3C sub-categories (old strategy).
-- **2026-03-22**: Store ID set to `ATVPDKIKX0DER`. Pipeline reactivated.
-- **2026-03-23**: **Strategy changed to manual seller sourcing.** 3C categories retained as legacy. All brand-safe categories now eligible. Automated 1688 discovery no longer used for Amazon.
-- **2026-03-28**: **Earphones/headphones permanently banned from Amazon.** 52 policy violations received — all earphone/headphone products removed. Category added to BANNED list. Legacy 3C list updated.

@@ -96,5 +96,5 @@ Amazon via flat files if needed (47 products were generated on 2026-03-23).
 - **2026-03-04**: Power bank BANNED from all platforms.
 - **2026-03-05**: AliExpress pivoted from 3C to Clothing & Apparel.
 - **2026-03-06**: Amazon, eBay, Etsy paused. Only AliExpress active.
-- **2026-03-22**: Amazon reactivated with store ID ATVPDKIKX0DER.
+- **2026-03-22**: Amazon reactivated.
 - **2026-03-23**: **Major strategy change.** All 4 platforms active. Brand-safe categories replace 3C/clothing. Amazon switches to manual seller sourcing. eBay + Etsy activated.
