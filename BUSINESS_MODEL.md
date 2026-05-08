@@ -90,14 +90,14 @@ Per Pro user (¥199/mo) at scale (~10K users):
 
 | Line item | Monthly cost (¥) |
 |---|---|
-| AWS infrastructure (per-user share) | ¥3 |
-| Claude API fallback (5–10% of requests) | ¥5 |
+| AWS infrastructure (auth backend + downloads, per-user share) | ¥2 |
+| LLM inference cost | **¥0** (on-device — runs on user's Apple Silicon Mac) |
 | Payment processing (3%) | ¥6 |
 | Customer support (distributed avg) | ¥10 |
-| **Total cost** | **¥24** |
-| **Gross margin** | **88%** |
+| **Total cost** | **¥18** |
+| **Gross margin** | **91%** |
 
-For comparison: typical SaaS gross margin is 60–75%. AutoStore's 88% is closer to category-killer territory because the user pays their own LLM bill — the variable cost that crushes most AI products is shifted to the user.
+For comparison: typical SaaS gross margin is 60–75%. AutoStore's 91% gross margin is category-killer territory because **all inference runs on the user's own Mac via the bundled `llama-server` and Apple Silicon Metal acceleration**. There is no per-token billing, no API fallback cost, no GPU server bill that scales with users. Compute cost is shifted entirely off our P&L.
 
 ---
 

@@ -1,46 +1,62 @@
 # AutoStore Local Model Strategy
 
-**Status:** ✅ DEPLOYED 2026-05-08. Path A (Qwen 2.5 3B on existing CPU server) is live.
-**Authored:** 2026-05-06
-**Last deploy:** 2026-05-08 — see "Deployed state" section below.
+**Status:** ✅ Path D (on-device, bundled in Mac app) is the production architecture as of 2026-05-08.
+**History:** Path A (server-side llama.cpp on AWS CPU box) was deployed 2026-05-08 morning, then **decommissioned the same day** after measured first-message latency of 60-180s proved unviable. On-device inference on Apple Silicon is 6-7× faster end-to-end and removes server cost entirely.
 **Predecessor docs:** `KNOWLEDGE_DISTILLATION_STRATEGY.md`, `COMPUTER_USE_STRATEGY.md`, `BUSINESS_MODEL.md`.
 
 ---
 
-## Deployed state (as of 2026-05-08)
+## Architecture (Path D — on-device, current production)
 
-End-to-end chain working:
+The Mac app bundles a Metal-accelerated `llama-server` binary and downloads the GGUF on first launch. There is no AutoStore-hosted inference server — every user's Mac runs the model locally.
 
 ```
-User Mac client (autostore-cloud provider, JWT auth)
-    │ HTTPS + user JWT
-    ▼
-api.spriterock.com  (AutoStore backend, AWS 3.95.41.84:4000, PM2 'autostore-backend')
-    │ POST /api/llm/proxy/v1/chat/completions  (LlmProxyController)
-    │ Validates JWT → swaps Authorization to AUTOSTORE_LLM_TOKEN
-    ▼
-http://34.235.75.7:8080  (model server, AWS instance i-047faf3656d0485a1, region us-east-1)
-    │ UFW: port 8080 inbound only from 3.95.41.84/32 ✅
-    │ nginx: validates Bearer AUTOSTORE_LLM_TOKEN → 401 otherwise
-    ▼
-127.0.0.1:8081  (llama-server, loopback only, systemd 'autostore-llm.service')
-    │
-    ▼
-Qwen 2.5 3B Instruct Q4_K_M (~2.0 GB GGUF)
+AutoStore.app (one installer, signed + notarized)
+  Contents/Resources/llama-server  ← bundled binary, 18 MB, arm64+Metal, no external dylib deps
+  ↓ spawns at app startup
+127.0.0.1:18080  ← llama-server, loopback only, --alias autostore-mini
+  ↓ loads
+~/Library/Application Support/AutoStore/models/autostore-mini.gguf
+  ← Qwen 2.5 3B Instruct Q4_K_M, ~2 GB
+  ← downloaded once from https://spriterock.com/downloads/autostore-mini.gguf
 ```
 
-**Performance measured on the deployed hardware:**
-- Time-to-first-token: ~3 seconds (cold cache)
-- Generation: ~9.5 tok/s
-- End-to-end for an 80-token Chinese tool call: 4-13 seconds (cold), 3-4 seconds (warm cache)
-- Concurrent requests: serialized — fine for early users
+The Mac client (`LocalLLMService.swift`) routes the `autostore-cloud` provider directly to `http://127.0.0.1:18080/v1/chat/completions` — no auth needed (loopback only). `LocalLLMRunner.swift` owns the subprocess lifecycle: spawns, monitors `/health`, logs to `~/Library/Application Support/AutoStore/llama-server.log`, terminates on app quit.
+
+**Performance measured on M-series Mac (Metal):**
+- Prompt processing: ~94 tok/s (vs 14 tok/s on the AWS CPU box — 6.7× faster)
+- Generation: ~41 tok/s (vs 6 tok/s — 6.8× faster)
+- End-to-end for an 80-token Chinese tool call: **<1 second**
+- First-launch model download: ~2 GB, one-time
+- Cost to AutoStore: $0/user (no AWS inference billing)
+- Privacy: zero user data leaves the device
 
 **Verified 2026-05-08:**
-- Mac → Backend → Model server: chain returns 200
-- Bearer token rejected from any source other than backend
-- Random IPs blocked at kernel level (UFW logs `[UFW BLOCK]`)
-- Server-side smoke test: `curl http://127.0.0.1:8080/health` → `{"status":"ok"}`
-- Real Chinese intent test: `查看 ebay 店铺的订单` → routed to `platform_go(platform=ebay, task=orders)` ✓
+- `查看 ebay 订单` routed to `platform_go(ebay, orders)` in 0.45s on this dev Mac
+- Bundled binary depends only on system frameworks (Metal, Accelerate, Foundation, libc++) — runs on any macOS 14+ Apple Silicon Mac
+- Notarized + stapled via `mac/notarize.sh` (extended to sign nested executables with hardened runtime + entitlements)
+
+---
+
+## What was decommissioned (Path A — never lasted a day)
+
+Path A briefly ran on AWS instance `i-047faf3656d0485a1` (us-east-1, CPU-only, 2 vCPU, 7.6 GB RAM). It was complete and verified working — including UFW lockdown, systemd unit, nginx bearer auth, JWT-validating backend proxy at `/api/llm/proxy/v1` — before being torn down because:
+1. CPU inference of a 4-KB system prompt took ~5 minutes
+2. Even with a stripped-down 700-token prompt, first-message latency was still 60+ seconds
+3. The same model on user's Apple Silicon runs in <1 second with Metal
+
+The teardown removed:
+- systemd unit `autostore-llm.service`
+- `/usr/local/bin/llama-server` binary
+- `/opt/autostore-llm/` (~2.6 GB including the GGUF)
+- nginx site config + symlink
+- UFW rule allowing port 8080 from backend IP
+- Backend `LlmProxyController` + `'autostore-cloud'` provider entry
+- Backend env vars `AUTOSTORE_LLM_BASE_URL`, `AUTOSTORE_LLM_TOKEN`
+- Frontend nginx `proxy_read_timeout` reverted from 600s → 300s
+- Mac client cloud fallback URL
+
+Kept: `https://spriterock.com/downloads/autostore-mini.gguf` (used by the on-device first-launch download flow).
 
 ---
 
