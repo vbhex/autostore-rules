@@ -1,8 +1,46 @@
 # AutoStore Local Model Strategy
 
-**Status:** Active. Path A (Qwen 2.5 3B on existing CPU server) is the MVP.
+**Status:** ✅ DEPLOYED 2026-05-08. Path A (Qwen 2.5 3B on existing CPU server) is live.
 **Authored:** 2026-05-06
+**Last deploy:** 2026-05-08 — see "Deployed state" section below.
 **Predecessor docs:** `KNOWLEDGE_DISTILLATION_STRATEGY.md`, `COMPUTER_USE_STRATEGY.md`, `BUSINESS_MODEL.md`.
+
+---
+
+## Deployed state (as of 2026-05-08)
+
+End-to-end chain working:
+
+```
+User Mac client (autostore-cloud provider, JWT auth)
+    │ HTTPS + user JWT
+    ▼
+api.spriterock.com  (AutoStore backend, AWS 3.95.41.84:4000, PM2 'autostore-backend')
+    │ POST /api/llm/proxy/v1/chat/completions  (LlmProxyController)
+    │ Validates JWT → swaps Authorization to AUTOSTORE_LLM_TOKEN
+    ▼
+http://34.235.75.7:8080  (model server, AWS instance i-047faf3656d0485a1, region us-east-1)
+    │ UFW: port 8080 inbound only from 3.95.41.84/32 ✅
+    │ nginx: validates Bearer AUTOSTORE_LLM_TOKEN → 401 otherwise
+    ▼
+127.0.0.1:8081  (llama-server, loopback only, systemd 'autostore-llm.service')
+    │
+    ▼
+Qwen 2.5 3B Instruct Q4_K_M (~2.0 GB GGUF)
+```
+
+**Performance measured on the deployed hardware:**
+- Time-to-first-token: ~3 seconds (cold cache)
+- Generation: ~9.5 tok/s
+- End-to-end for an 80-token Chinese tool call: 4-13 seconds (cold), 3-4 seconds (warm cache)
+- Concurrent requests: serialized — fine for early users
+
+**Verified 2026-05-08:**
+- Mac → Backend → Model server: chain returns 200
+- Bearer token rejected from any source other than backend
+- Random IPs blocked at kernel level (UFW logs `[UFW BLOCK]`)
+- Server-side smoke test: `curl http://127.0.0.1:8080/health` → `{"status":"ok"}`
+- Real Chinese intent test: `查看 ebay 店铺的订单` → routed to `platform_go(platform=ebay, task=orders)` ✓
 
 ---
 
