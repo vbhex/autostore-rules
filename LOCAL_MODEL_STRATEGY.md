@@ -26,19 +26,39 @@ The strategic implication: AutoStore can ship its own LLM endpoint, eliminating 
 
 ## Architecture (Path A — current MVP)
 
+**End users NEVER directly access the model server.** Mac client talks only to the AutoStore backend; the backend proxies LLM requests on the user's behalf.
+
 ```
-┌──────────────────┐  HTTPS   ┌────────────────────┐
-│ AutoStore Mac /  │ ───────▶ │ AWS server         │
-│ Backend          │  Bearer  │ ec2-34.235.75.7    │
-└──────────────────┘  token   │                    │
-                              │  nginx (TLS)       │
-                              │    ↓ /v1/...       │
-                              │  llama-server      │
-                              │  (llama.cpp)       │
-                              │  Qwen 2.5 3B Q4    │
-                              │  port 8080 loopback│
-                              └────────────────────┘
+┌──────────────────────────┐
+│  AutoStore Mac Client    │   user device
+│  (with user's JWT)       │
+└──────────┬───────────────┘
+           │ HTTPS + user JWT (existing AutoStore auth)
+           ▼
+┌──────────────────────────┐
+│  AutoStore Backend       │   api.spriterock.com (existing)
+│  - Validates user JWT    │
+│  - Tracks quota & cost   │
+│  - Holds AUTOSTORE_LLM_TOKEN in env vars
+└──────────┬───────────────┘
+           │ HTTPS + Bearer AUTOSTORE_LLM_TOKEN  (server-to-server only)
+           ▼
+┌──────────────────────────┐
+│  Model Server            │   llm.spriterock.com  (this doc)
+│  - nginx terminates TLS  │
+│  - Validates bearer token│
+│  - llama-server (loopback only)
+│  - Qwen 2.5 3B Q4        │
+│  - AWS SG restricts inbound to backend's IP
+└──────────────────────────┘
 ```
+
+**Why this layering:**
+- Bearer token never leaves the backend → safe even if a Mac client is compromised
+- Quota / per-user rate limits / Pro-tier gating live in the backend (where user identity exists)
+- Model server is fungible — swap 3B for 7B or move to GPU without any client-side change
+- AWS Security Group restricts inbound on port 443 to the backend's elastic IP — even with valid token, public callers are blocked at the network layer
+- Failover (primary → backup) is centralized in the backend; Mac client doesn't know about model topology
 
 **Runtime stack:**
 - **Inference engine**: `llama.cpp` (latest release) compiled CPU-only with AVX2/AVX512 support
@@ -83,13 +103,22 @@ Content-Type: application/json
 
 Response is a standard OpenAI streaming chunk format. Tool-call extraction works as-is — `llama.cpp`'s server supports the OpenAI tool-call format natively for Qwen.
 
-**Backend integration**: in `LocalLLMService.swift` (Mac app) and `backend/src/llm/` (NestJS), add a new `LLMProviderConfig` entry:
+**Backend integration** — this has TWO sides:
+
+1. **`backend/src/llm/`** (NestJS, server-side) — add a new POST route `/api/llm/chat` that:
+   - Validates the user's JWT (existing AutoStore auth)
+   - Checks the user's quota and plan tier (Pro users get unlimited; Free tier limited to e.g. 50/month)
+   - Forwards the request to `https://llm.spriterock.com/v1/chat/completions` with the server-side `AUTOSTORE_LLM_TOKEN` in the `Authorization` header
+   - Streams the response back to the client
+   - Logs usage for billing / abuse detection
+
+2. **`mac/AutoStore/Sources/Services/LocalLLMService.swift`** (Mac app, client-side) — add a new `LLMProviderConfig`:
 
 ```swift
 LLMProviderConfig(
   id: "autostore-cloud",
   name: "AutoStore Cloud (免费)",
-  baseURL: "https://llm.spriterock.com/v1",
+  baseURL: "https://api.spriterock.com/api/llm",   // ← AutoStore backend, NOT the model server
   defaultModel: "qwen2.5-3b",
   models: ["qwen2.5-3b"],
   maxOutputTokens: 4096,
@@ -98,7 +127,9 @@ LLMProviderConfig(
 )
 ```
 
-The user's API key field is pre-filled with `AUTOSTORE_FREE` (a special sentinel that the backend translates to the real bearer token before forwarding). End users see `AutoStore Cloud (免费)` as a one-click option that doesn't require their own API key.
+The Mac client authenticates with its **existing AutoStore JWT** (no new API key field). End users see `AutoStore Cloud (免费)` as a one-click option. The bearer token to the model server **stays exclusively on the backend** — Mac client never sees it, never holds it, never sends it.
+
+**Inbound restriction**: AWS Security Group on the model server allows port 443 only from the AutoStore backend's elastic IP (e.g. `52.x.x.x/32`). Even a leaked bearer token is useless from any other source.
 
 ---
 
