@@ -44,7 +44,7 @@ The strategic implication: AutoStore can ship its own LLM endpoint, eliminating 
            │ HTTPS + Bearer AUTOSTORE_LLM_TOKEN  (server-to-server only)
            ▼
 ┌──────────────────────────┐
-│  Model Server            │   llm.spriterock.com  (this doc)
+│  Model Server            │   34.235.75.7  (this doc)
 │  - nginx terminates TLS  │
 │  - Validates bearer token│
 │  - llama-server (loopback only)
@@ -66,7 +66,7 @@ The strategic implication: AutoStore can ship its own LLM endpoint, eliminating 
 - **Server**: `llama-server` binary — exposes OpenAI-compatible REST API at `/v1/chat/completions`
 - **Reverse proxy**: nginx terminates TLS, validates `Authorization: Bearer <token>` header, proxies to `127.0.0.1:8080`
 - **Process manager**: systemd unit (`autostore-llm.service`) — auto-restart on failure, auto-start on reboot
-- **TLS**: existing Let's Encrypt cert via certbot; subdomain `llm.spriterock.com` (or path `/llm/v1` on existing domain — TBD at deploy time)
+- **TLS**: existing Let's Encrypt cert via certbot; subdomain `34.235.75.7` (or path `/llm/v1` on existing domain — TBD at deploy time)
 
 **Hardware reality on the existing server:**
 - 2 vCPUs (Intel Xeon Platinum 8259CL @ 2.5 GHz)
@@ -83,12 +83,29 @@ The strategic implication: AutoStore can ship its own LLM endpoint, eliminating 
 
 ---
 
+## URL strategy — HTTP + raw IP (MVP)
+
+We deliberately use the **EC2 public IP directly with HTTP** instead of a domain + Let's Encrypt. Reasons:
+
+- **End users never hit the model server.** Mac client → AutoStore backend → model server. The only caller is the backend, which is also under our control.
+- **AWS Security Group is the primary access control.** Inbound port 80 is restricted to the AutoStore backend's elastic IP. Without a valid source, even the bearer token is irrelevant — TCP connections are dropped at the network layer.
+- **Bearer token is the secondary access control.** Even if the SG was misconfigured, nginx rejects requests without `Authorization: Bearer ${AUTOSTORE_LLM_TOKEN}`.
+- **Both servers are in AWS us-east-1.** Backend↔model-server traffic stays inside AWS infrastructure. The only attacker who could sniff plaintext is someone with deep AWS infra access — well below other risks.
+- **Eliminates DNS dependency** — no waiting for A-record propagation, no Let's Encrypt rate limits, no cert-renewal cron jobs.
+
+The trade-off (TLS-in-transit) is accepted for MVP. To upgrade later:
+1. Set `LLM_HOST=llm.example.com` and `LLM_USE_TLS=true` in `config/llm.env`
+2. Add a DNS A record pointing the domain at the EC2 IP
+3. Re-run `scripts/06-tls-setup.sh` — certbot will issue a Let's Encrypt cert and reconfigure nginx
+
+No changes required in the backend or Mac client (other than updating the base URL env var).
+
 ## API contract
 
 The endpoint is **fully OpenAI-compatible**, so AutoStore backend just changes one base URL:
 
 ```
-POST https://llm.spriterock.com/v1/chat/completions
+POST http://34.235.75.7/v1/chat/completions
 Authorization: Bearer <AUTOSTORE_LLM_TOKEN>
 Content-Type: application/json
 
@@ -108,7 +125,7 @@ Response is a standard OpenAI streaming chunk format. Tool-call extraction works
 1. **`backend/src/llm/`** (NestJS, server-side) — add a new POST route `/api/llm/chat` that:
    - Validates the user's JWT (existing AutoStore auth)
    - Checks the user's quota and plan tier (Pro users get unlimited; Free tier limited to e.g. 50/month)
-   - Forwards the request to `https://llm.spriterock.com/v1/chat/completions` with the server-side `AUTOSTORE_LLM_TOKEN` in the `Authorization` header
+   - Forwards the request to `http://34.235.75.7/v1/chat/completions` with the server-side `AUTOSTORE_LLM_TOKEN` in the `Authorization` header
    - Streams the response back to the client
    - Logs usage for billing / abuse detection
 
@@ -147,7 +164,7 @@ local-model/
     03-download-model.sh     — wget Qwen 2.5 3B Q4_K_M GGUF from HuggingFace mirror
     04-systemd-install.sh    — install autostore-llm.service, enable, start
     05-nginx-config.sh       — install nginx site config + reload
-    06-tls-setup.sh          — certbot --nginx for llm.spriterock.com
+    06-tls-setup.sh          — certbot --nginx for 34.235.75.7
     99-deploy.sh             — top-level orchestrator: runs 01→06 in order
   systemd/
     autostore-llm.service    — systemd unit definition (loopback :8080)
@@ -209,7 +226,7 @@ Document the decision and migration in `rules/LOCAL_MODEL_PATH_C.md` if/when we 
 |---|---|
 | Model server crashes / OOM | systemd auto-restart; nginx `proxy_next_upstream` to backup server |
 | Token leaked publicly | Rotate token, restart server, audit access logs |
-| HuggingFace download blocked from China region | Pre-download GGUF on US/HK and serve from our own CDN; users go through `llm.spriterock.com` so they don't need direct HF access |
+| HuggingFace download blocked from China region | Pre-download GGUF on US/HK and serve from our own CDN; users go through `34.235.75.7` so they don't need direct HF access |
 | Concurrent users overload single instance | llama.cpp serializes — measure under load, add queue, eventually move to Path C |
 | Quality regression on edge cases | Keep BYO-LLM as a fallback option in the model picker; users can always switch |
 | RAM contention with Ethereum node | Monitor; if it bites, move LLM to backup server (which has same specs but lighter Ethereum load) — they're identical |
