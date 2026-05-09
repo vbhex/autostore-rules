@@ -342,15 +342,38 @@ to `SummaryKind.{platformPage, database, workflow}` first.
 - Avoiding the `未知 / N/A` anti-pattern 3B still falls into
 
 7B costs:
-- 2–3× latency (still 1.5–9 s, all acceptable)
-- 4.5 GB RSS vs 2.3 GB
-- **Free RAM on 16 GB M1 with 7B + AutoStore + Chrome ≈ 91 MB** (swap pressure imminent)
+- 2–3× latency on warm requests (3.7–4.7 s 7B vs 0.85–4 s 3B for the same cases)
+- 4.9 GB RSS vs 2.3 GB
 - New-user download: 2.0 GB → 4.4 GB
+- **Free RAM on 16 GB M1, corrected**:
+    - 7B alone: 1.1 GB free
+    - 7B + idle AutoStore + idle Chrome (typical user): ~2 GB free — workable
+    - 7B + AutoStore + 3B accidentally still running: 91 MB ← the original alarming number; was an artifact of running both models simultaneously for the A/B, *not* representative of any production state.
 
-### Decision
-- **16 GB M1 / M2 (current default users): stay on 3B.** Memory headroom matters more than the qualitative wins; users with Chrome + node tasks + AutoStore would see swap thrash.
-- **32 GB+ Macs: ship 7B as the default.** All the cost factors disappear — 4.5 GB RSS leaves 25+ GB free.
-- **Long-term**: `LocalLLMRunner` should auto-pick 7B when `ProcessInfo.processInfo.physicalMemory ≥ 32 * 1024^3`, fall back to 3B otherwise. The S3 bucket should host both GGUFs; the Mac client downloads the right one on first launch.
+### Quality reliability
+The 5-order/INR-catch case I cited is **not reproducibly correct on
+7B**. Two runs of the identical prompt at temperature 0:
+
+  Run 1 (with 3B server still loaded too): ✓ "有 1 笔订单待处理且存在投诉 (12-99102, John Smith)"
+  Run 2 (7B alone, restarted server)     : ✗ "有投诉订单：12-99102（John Smith，**印度尼西亚索赔中**）"
+
+The "Indonesia claim in progress" hallucination misreads "INR" as
+the country code for Indonesia (it's actually India's currency code;
+in eBay seller-hub context "INR" = "Item Not Received"). 7B's catch
+of the qualitative signal exists, but with a meaningful tail risk of
+fabricating context the data doesn't support. This is a real concern
+for sellers — better to NOT mention complaints at all than to invent
+geography around them.
+
+### Decision (corrected)
+- **16 GB M1 / M2 users (current default): stay on 3B.**
+    - Memory: workable with 7B but tight enough to swap-thrash under heavier multitasking.
+    - Latency: 3-6 s warm vs <2 s on 3B is a noticeable UX regression for routine queries.
+    - Quality: 7B's wins are real but inconsistent; the hallucination tail risk on judgment cases is bad for a seller's chat assistant.
+- **32 GB+ Macs**: still candidates for 7B by default — but only after the hallucination tail is mitigated. Two routes:
+    - More extensive few-shot examples for the judgment cases (the 5-order INR-style scenarios).
+    - Fall back to a stronger model (cloud GPT-4o / DeepSeek-Chat) for any prompt classified as "qualitative judgment over multiple rows".
+- **Don't auto-pick by RAM yet** — the quality reliability question matters more than the memory question, and we don't have a clean answer yet.
 
 ### When ANY of these would actually pay off
 - Open-domain Chinese chat (we don't do this — we do narrow summarization).
