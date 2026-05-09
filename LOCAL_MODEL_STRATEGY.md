@@ -350,30 +350,64 @@ to `SummaryKind.{platformPage, database, workflow}` first.
     - 7B + idle AutoStore + idle Chrome (typical user): ~2 GB free — workable
     - 7B + AutoStore + 3B accidentally still running: 91 MB ← the original alarming number; was an artifact of running both models simultaneously for the A/B, *not* representative of any production state.
 
-### Quality reliability
-The 5-order/INR-catch case I cited is **not reproducibly correct on
-7B**. Two runs of the identical prompt at temperature 0:
+### Quality reliability — the honest comparison
+The 5-order/INR-catch case looks like this if we line up all the
+samples we actually have, not just the ones that flatter one model:
 
-  Run 1 (with 3B server still loaded too): ✓ "有 1 笔订单待处理且存在投诉 (12-99102, John Smith)"
-  Run 2 (7B alone, restarted server)     : ✗ "有投诉订单：12-99102（John Smith，**印度尼西亚索赔中**）"
+| Model              | Output                                                              | Verdict                              |
+|--------------------|---------------------------------------------------------------------|--------------------------------------|
+| 3B                 | "最近一笔: Lisa K. 追踪号**未知**"                                   | **Silently misses** the complaint; uses the forbidden "未知" placeholder |
+| 7B run 1           | "有 1 笔订单待处理且存在投诉 (12-99102, John Smith)"                  | ✓ Correctly flags the complaint     |
+| 7B run 2 (temp=0!) | "12-99102（John Smith，**印度尼西亚索赔中**）"                        | ✗ Hallucinates "Indonesia claim in progress" — misreads "INR" (Item Not Received in eBay context) as the country code for Indonesia |
 
-The "Indonesia claim in progress" hallucination misreads "INR" as
-the country code for Indonesia (it's actually India's currency code;
-in eBay seller-hub context "INR" = "Item Not Received"). 7B's catch
-of the qualitative signal exists, but with a meaningful tail risk of
-fabricating context the data doesn't support. This is a real concern
-for sellers — better to NOT mention complaints at all than to invent
-geography around them.
+This is **not** "3B is better". 3B's failure mode — silent miss with
+a forbidden placeholder — is the worst kind for a seller chat tool:
+the user thinks all is fine. 7B's failure mode — flagged-but-wrong —
+is recoverable: the user clicks the order to check, finds the truth.
+**Flagged-and-wrong beats silently-missed**, especially for
+qualitative signals (complaints, returns, violations).
 
-### Decision (corrected)
-- **16 GB M1 / M2 users (current default): stay on 3B.**
-    - Memory: workable with 7B but tight enough to swap-thrash under heavier multitasking.
-    - Latency: 3-6 s warm vs <2 s on 3B is a noticeable UX regression for routine queries.
-    - Quality: 7B's wins are real but inconsistent; the hallucination tail risk on judgment cases is bad for a seller's chat assistant.
-- **32 GB+ Macs**: still candidates for 7B by default — but only after the hallucination tail is mitigated. Two routes:
-    - More extensive few-shot examples for the judgment cases (the 5-order INR-style scenarios).
-    - Fall back to a stronger model (cloud GPT-4o / DeepSeek-Chat) for any prompt classified as "qualitative judgment over multiple rows".
-- **Don't auto-pick by RAM yet** — the quality reliability question matters more than the memory question, and we don't have a clean answer yet.
+So the real picture is:
+- **3B**: reliably handles routine routing/summarisation. Fails by
+  omitting qualitative signals, hard to detect.
+- **7B**: catches qualitative signals. Sometimes adds plausible-but-
+  wrong context (INR → 印度尼西亚) that the user has to verify.
+- **Neither is great at judgment over multiple rows.** The fix is
+  better few-shot examples for the cases we know about, OR a cloud
+  fallback for "judgment" prompts.
+
+### Cloud-fallback economics — is it really "not free"?
+Adding a cloud fallback for the (small) fraction of prompts that need
+qualitative judgment doesn't break the "free local LLM" pitch:
+
+| Provider        | $/M in   | $/M out  | Cost per turn (1k+200)  | Cost per 1k turns | Notes                  |
+|-----------------|----------|----------|-------------------------|-------------------|------------------------|
+| **DeepSeek-Chat** | $0.14   | $0.28    | $0.0002                 | **$0.20**         | China-based, no GFW    |
+| Qwen-Plus       | ¥0.8     | ¥2       | ~$0.0005                | $0.50             |                        |
+| GPT-4o-mini     | $0.15    | $0.60    | $0.0003                 | $0.30             |                        |
+| GPT-4o          | $2.50    | $10      | $0.0050                 | $5.00             | Quality ceiling        |
+
+A heavy seller doing 50 turns/day on DeepSeek = **$0.30/month**.
+AutoStore Cloud's free tier can absorb that for all users without a
+paywall. Only the 5–10% of "judgment" prompts need to route there;
+routine routing stays fully local.
+
+### Decision (corrected, again)
+The path forward isn't "3B forever" — it's a small architecture step:
+
+1. **Default to 3B locally** for routine routing + summarisation
+   (the bypass + few-shot path we already have).
+2. **Add a `cloudFallback` SummaryKind** that routes specific
+   prompt shapes to DeepSeek-Chat: anything matched as "qualitative
+   judgment over multiple rows" (heuristics: ≥3 rows in the macro
+   result AND prompt contains 投诉 / 违规 / 异常 / claim / dispute
+   / suspicious / etc).
+3. **Keep 7B on the bench** for users who specifically opt in via
+   Settings; don't make it the default until we've mitigated the
+   hallucination tail.
+4. **Don't auto-pick by RAM**; pick by *prompt class*. Memory was a
+   red herring all along — the real choice is "where does this
+   class of prompt land", not "how much RAM does the user have".
 
 ### When ANY of these would actually pay off
 - Open-domain Chinese chat (we don't do this — we do narrow summarization).
