@@ -312,36 +312,53 @@ A short sentence will be added to `rules/COMPLIANCE_QUICKREF.md` (if it exists) 
 
 ---
 
-## Why 3B and not 7B / 4B (settled 2026-05-09)
+## Model size vs quality (settled 2026-05-09)
 
 Question that recurs: "16 GB M1 has plenty of headroom — why not Qwen 2.5 7B
-or Qwen 3 4B for better Chinese summaries?" Tested on the China MacBook
-(M1, 16 GB) against the **production few-shot summarizer prompts** in
-`mac/AutoStore/Sources/Views/ChatView.swift`:
+or Qwen 3 4B for better Chinese summaries?" Tested all three on the
+China MacBook (M1, 16 GB) against the **production few-shot summarizer
+prompts** in `mac/AutoStore/Sources/Views/ChatView.swift`:
 
-| Case (real macro output → Chinese summary) | Qwen 2.5 3B    | Qwen 3 4B `/no_think` | Quality delta |
-|--------------------------------------------|----------------|------------------------|---------------|
-| 2-row order summary                        | 4.0 s / 48 tok | 5.7 s / 54 tok         | identical     |
-| empty page (Results: 0)                    | 0.85 s / 16 tok| 2.4 s / 41 tok         | 4B slightly more thorough |
-| login wall                                 | 1.0 s / 20 tok | 1.5 s / 24 tok         | **byte-identical text** |
-| Amazon inventory (367 listings)            | 2.1 s / 44 tok | 2.9 s / 48 tok         | **byte-identical text** |
+| Case (real macro output → Chinese summary) | Qwen 2.5 3B    | Qwen 3 4B `/no_think` | Qwen 2.5 7B    |
+|--------------------------------------------|----------------|------------------------|----------------|
+| 2-row order summary                        | 4.0 s / 48 tok | 5.7 s / 54 tok         | 9.3 s / 60 tok — lists **both** orders, not just one |
+| empty page (Results: 0)                    | 0.85 s / 16 tok| 2.4 s / 41 tok         | 1.5 s / 14 tok |
+| login wall                                 | 1.0 s / 20 tok | 1.5 s / 24 tok         | 1.9 s / 19 tok |
+| Amazon inventory (367 listings)            | 2.1 s / 44 tok | 2.9 s / 48 tok         | 5.7 s / 64 tok — lists **3 ASINs**, not 1 |
+| Complex workflow (post-listings, 0 prods)  | 1.8 s / 38 tok | n/a                    | 4.7 s / 51 tok — synthesises multi-step state |
+| **5-order list with 1 INR complaint**      | "Lisa K. 追踪号未知" — misses the complaint, uses forbidden "未知" | n/a | **"有 1 笔订单待处理且存在投诉 (12-99102-11234, John Smith)"** — catches it |
 
-Conclusion: **the few-shot examples in the system prompt do the heavy
-lifting**. With concrete I/O pairs, 3B already pattern-matches well on
-AutoStore's narrow workload (intent routing handed off deterministically
-in Swift; LLM only summarizes structured macro output). 4B costs ~1.5×
-latency and ~1 GB extra RSS for marginal-to-zero quality gain.
+### 3B vs 4B: not worth swapping
+4B produced byte-identical or trivially different output for ~1.5×
+latency. **The few-shot examples are the lever, not 3B → 4B.** Don't
+swap the model to compensate for a thin prompt — add few-shot examples
+to `SummaryKind.{platformPage, database, workflow}` first.
 
-When 4B/7B would actually pay off:
+### 3B vs 7B: real qualitative wins, but tight on RAM
+7B is meaningfully better at:
+- Following "前 N 条" instructions (lists multiple items, not just one)
+- Synthesising multi-step state ("0 generated + 3 authorized waiting + Task 4 launched")
+- **Catching qualitative signals** in mixed data (an INR complaint amid 5 orders) — exactly the kind of judgment a seller wants
+- Avoiding the `未知 / N/A` anti-pattern 3B still falls into
+
+7B costs:
+- 2–3× latency (still 1.5–9 s, all acceptable)
+- 4.5 GB RSS vs 2.3 GB
+- **Free RAM on 16 GB M1 with 7B + AutoStore + Chrome ≈ 91 MB** (swap pressure imminent)
+- New-user download: 2.0 GB → 4.4 GB
+
+### Decision
+- **16 GB M1 / M2 (current default users): stay on 3B.** Memory headroom matters more than the qualitative wins; users with Chrome + node tasks + AutoStore would see swap thrash.
+- **32 GB+ Macs: ship 7B as the default.** All the cost factors disappear — 4.5 GB RSS leaves 25+ GB free.
+- **Long-term**: `LocalLLMRunner` should auto-pick 7B when `ProcessInfo.processInfo.physicalMemory ≥ 32 * 1024^3`, fall back to 3B otherwise. The S3 bucket should host both GGUFs; the Mac client downloads the right one on first launch.
+
+### When ANY of these would actually pay off
 - Open-domain Chinese chat (we don't do this — we do narrow summarization).
 - Multi-step reasoning agents (we use a 100-iter loop on cloud providers
   for that path; the on-device model never runs the agent loop).
-- Long-context summarization >2 KB input (we cap macro dumps at 6 KB and
-  the few-shot examples already cover the patterns).
-
-If you want to revisit: add new SummaryKind cases first, write 2–3 worked
-few-shot examples, *then* see if 3B falls short before considering a
-larger model. **Don't swap the model to compensate for a thin prompt.**
+- Long-context summarisation > 6 KB input (we cap macro dumps at 6 KB).
+- The qualitative-judgment cases above (5-order INR catch) — these are
+  the ones that move 3B → 7B from "luxury" to "real product win".
 
 Practical perf knobs we've already exhausted (in
 `mac/AutoStore/Sources/Services/LocalLLMRunner.swift`):
