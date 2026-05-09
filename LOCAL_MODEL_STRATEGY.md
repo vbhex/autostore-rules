@@ -312,6 +312,47 @@ A short sentence will be added to `rules/COMPLIANCE_QUICKREF.md` (if it exists) 
 
 ---
 
+## Why 3B and not 7B / 4B (settled 2026-05-09)
+
+Question that recurs: "16 GB M1 has plenty of headroom — why not Qwen 2.5 7B
+or Qwen 3 4B for better Chinese summaries?" Tested on the China MacBook
+(M1, 16 GB) against the **production few-shot summarizer prompts** in
+`mac/AutoStore/Sources/Views/ChatView.swift`:
+
+| Case (real macro output → Chinese summary) | Qwen 2.5 3B    | Qwen 3 4B `/no_think` | Quality delta |
+|--------------------------------------------|----------------|------------------------|---------------|
+| 2-row order summary                        | 4.0 s / 48 tok | 5.7 s / 54 tok         | identical     |
+| empty page (Results: 0)                    | 0.85 s / 16 tok| 2.4 s / 41 tok         | 4B slightly more thorough |
+| login wall                                 | 1.0 s / 20 tok | 1.5 s / 24 tok         | **byte-identical text** |
+| Amazon inventory (367 listings)            | 2.1 s / 44 tok | 2.9 s / 48 tok         | **byte-identical text** |
+
+Conclusion: **the few-shot examples in the system prompt do the heavy
+lifting**. With concrete I/O pairs, 3B already pattern-matches well on
+AutoStore's narrow workload (intent routing handed off deterministically
+in Swift; LLM only summarizes structured macro output). 4B costs ~1.5×
+latency and ~1 GB extra RSS for marginal-to-zero quality gain.
+
+When 4B/7B would actually pay off:
+- Open-domain Chinese chat (we don't do this — we do narrow summarization).
+- Multi-step reasoning agents (we use a 100-iter loop on cloud providers
+  for that path; the on-device model never runs the agent loop).
+- Long-context summarization >2 KB input (we cap macro dumps at 6 KB and
+  the few-shot examples already cover the patterns).
+
+If you want to revisit: add new SummaryKind cases first, write 2–3 worked
+few-shot examples, *then* see if 3B falls short before considering a
+larger model. **Don't swap the model to compensate for a thin prompt.**
+
+Practical perf knobs we've already exhausted (in
+`mac/AutoStore/Sources/Services/LocalLLMRunner.swift`):
+- `--mlock` — weights stay resident
+- `--cache-type-{k,v} q8_0` — ½ KV cache size, ε quality loss
+- `-np 1` — single slot, no parallel inference
+- `-c 8192` (was 32768) — saved ~750 MB KV cache
+- `temperature: 0.0` in request body — greedy decoding for routing
+
+---
+
 ## See also
 
 - `rules/KNOWLEDGE_DISTILLATION_STRATEGY.md` — why intent routing is sufficient at runtime
