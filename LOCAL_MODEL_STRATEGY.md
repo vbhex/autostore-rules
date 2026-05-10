@@ -392,22 +392,34 @@ AutoStore Cloud's free tier can absorb that for all users without a
 paywall. Only the 5–10% of "judgment" prompts need to route there;
 routine routing stays fully local.
 
-### Decision (corrected, again)
-The path forward isn't "3B forever" — it's a small architecture step:
+### Decision (final, 2026-05-11): 7B-only, 24 GB+ Macs
+After three iterations of "3B vs 4B vs 7B" we landed on:
 
-1. **Default to 3B locally** for routine routing + summarisation
-   (the bypass + few-shot path we already have).
-2. **Add a `cloudFallback` SummaryKind** that routes specific
-   prompt shapes to DeepSeek-Chat: anything matched as "qualitative
-   judgment over multiple rows" (heuristics: ≥3 rows in the macro
-   result AND prompt contains 投诉 / 违规 / 异常 / claim / dispute
-   / suspicious / etc).
-3. **Keep 7B on the bench** for users who specifically opt in via
-   Settings; don't make it the default until we've mitigated the
-   hallucination tail.
-4. **Don't auto-pick by RAM**; pick by *prompt class*. Memory was a
-   red herring all along — the real choice is "where does this
-   class of prompt land", not "how much RAM does the user have".
+- **One on-device model: Qwen 2.5 7B Instruct Q4_K_M.** No 3B fallback,
+  no auto-RAM picker, no per-prompt cloud routing. The architecture
+  is "deterministic Swift router → typed macro → 7B summariser".
+- **Hardware floor: 24 GB Mac.** Enforced in `LocalLLMRunner.spawn`:
+  if `ProcessInfo.processInfo.physicalMemory < 23 GB` and
+  `AUTOSTORE_ALLOW_LOW_MEMORY` ≠ `1`, the runner reports status
+  `.insufficientMemory` with a Chinese explanatory banner and refuses
+  to download/start the model.
+- **S3 ships only 7B.** The 3B backup
+  (`autostore-mini-3b-backup.gguf`) was deleted on 2026-05-11. The
+  one-and-only model URL is
+  `s3://autostore-downloads/autostore-mini.gguf` (4.4 GB,
+  SHA `65b8fcd92af6b4fefa935c625d1ac27ea29dcb6ee14589c55a8f115ceaaa1423`,
+  bartowski's quant of Qwen 2.5 7B Instruct).
+- **Why 24 GB and not 16 GB:** measured on the dev China MacBook
+  (16 GB M1) — 7B + Chrome with seller-hub tabs + in-chrome daemon +
+  pipeline node tasks pushed free RAM below 200 MB; macOS App Nap
+  suspended Chrome; the in-chrome extension's service-worker socket
+  flapped to <1 s reconnects; every macro RPC failed with
+  `No current window` or `daemon not running`. 24 GB Macs pass the
+  same workload comfortably.
+- **The China MacBook is below floor.** It's used as a dev/test
+  machine; we run it with `AUTOSTORE_ALLOW_LOW_MEMORY=1` and accept
+  the swap thrash for testing. End users on 16 GB Macs will see the
+  red banner and be told to upgrade.
 
 ### When ANY of these would actually pay off
 - Open-domain Chinese chat (we don't do this — we do narrow summarization).
