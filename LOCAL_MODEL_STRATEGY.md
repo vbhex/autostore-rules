@@ -17,8 +17,9 @@ AutoStore.app (one installer, signed + notarized)
 127.0.0.1:18080  ← llama-server, loopback only, --alias autostore-mini
   ↓ loads
 ~/Library/Application Support/AutoStore/models/autostore-mini.gguf
-  ← Qwen 2.5 3B Instruct Q4_K_M, ~2 GB
-  ← downloaded once from https://spriterock.com/downloads/autostore-mini.gguf
+  ← Qwen 2.5 7B Instruct Q4_K_M, ~4.4 GB
+  ← downloaded once from https://autostore-downloads.s3.ap-southeast-1.amazonaws.com/autostore-mini.gguf
+  ← (legacy fallback: https://spriterock.com/downloads/autostore-mini.gguf)
 ```
 
 The Mac client (`LocalLLMService.swift`) routes the `autostore-cloud` provider directly to `http://127.0.0.1:18080/v1/chat/completions` — no auth needed (loopback only). `LocalLLMRunner.swift` owns the subprocess lifecycle: spawns, monitors `/health`, logs to `~/Library/Application Support/AutoStore/llama-server.log`, terminates on app quit.
@@ -27,7 +28,7 @@ The Mac client (`LocalLLMService.swift`) routes the `autostore-cloud` provider d
 - Prompt processing: ~94 tok/s (vs 14 tok/s on the AWS CPU box — 6.7× faster)
 - Generation: ~41 tok/s (vs 6 tok/s — 6.8× faster)
 - End-to-end for an 80-token Chinese tool call: **<1 second**
-- First-launch model download: ~2 GB, one-time
+- First-launch model download: ~4.4 GB, one-time
 - Cost to AutoStore: $0/user (no AWS inference billing)
 - Privacy: zero user data leaves the device
 
