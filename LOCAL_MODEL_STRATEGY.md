@@ -4,6 +4,14 @@
 **History:** Path A (server-side llama.cpp on AWS CPU box) was deployed 2026-05-08 morning, then **decommissioned the same day** after measured first-message latency of 60-180s proved unviable. On-device inference on Apple Silicon is 6-7× faster end-to-end and removes server cost entirely.
 **Predecessor docs:** `KNOWLEDGE_DISTILLATION_STRATEGY.md`, `COMPUTER_USE_STRATEGY.md`, `BUSINESS_MODEL.md`.
 
+> **Model migration note (2026-05-13):** The production model is now
+> **Qwen 2.5 7B Instruct Q4_K_M (~4.4 GB)**, not 3B. Historical sections
+> below that say "3B" describe the original architectural rationale
+> (which still holds — see "Intent classification is the easiest job
+> in NLP") but the deployed weights are 7B. The 24-GB-RAM Mac hardware
+> floor was added to support the larger model. See `mac/CHANGELOG.md`
+> for the migration history.
+
 ---
 
 ## Architecture (Path D — on-device, current production)
