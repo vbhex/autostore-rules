@@ -140,17 +140,22 @@ CLI: `--limit N`
 
 ---
 
-### Task 5 — AE Enrich (`task5-ae-enrich.ts`, 226 lines)
+### Task 5 — Image Enrichment (`task5-ae-enrich.ts`, ~170 lines) [UPDATED 2026-05-12]
 
 Final enrichment step before products are ready for platform import.
 
-- Checks `products_images_ok` for any gallery images with Chinese text
-- **No Chinese text** → advance directly to `ae_enriched` (use 1688 images as-is)
-- **Has Chinese text** → search AliExpress for the same product:
-  - Found on AliExpress → store AE images + English info → `ae_enriched`
-  - Not found → `skipped` (cannot list with Chinese text images)
-- Output table: `products_ae_match`
+- Checks `products_images_ok` for gallery images with Chinese text
+- **No Chinese text** → `ae_enriched` (use all 1688 images)
+- **Has Chinese text + ≥3 clean gallery images** → `ae_enriched` (use clean images only)
+- **Has Chinese text + <3 clean gallery images** → `skipped`
+- Output table: `products_ae_match` (has_chinese_images flag only — no AE data)
 - Status: `translated` → `ae_enriched` or `skipped`
+
+**NOTE**: AliExpress search was permanently removed 2026-05-12. `aliexpress_source` DB is offline. File name kept as task5-ae-enrich for compatibility; status `ae_enriched` unchanged.
+
+**Yield rates observed in practice:**
+- `brand_safe_discovery` (glasses chains, earmuffs, pocket watch accessories): ~2% pass rate — suppliers watermark ALL images with Chinese store branding.
+- `auto_discovery` (ShoeHorns, ContactLensCases, ToeRings, EyewearCasesBags, HandGripperStrengths): 80%+ potential pass rate — clean product photography — BUT requires task8 Wangwang outreach first. This is the main unlock for ae_enriched volume.
 
 CLI: `--limit N`
 
