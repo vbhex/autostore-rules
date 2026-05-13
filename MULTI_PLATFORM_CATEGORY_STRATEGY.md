@@ -1,9 +1,11 @@
 # Multi-Platform Category Strategy
 
-> **AS OF 2026-03-23: ALL 4 PLATFORMS ARE ACTIVE.**
-> AliExpress, eBay, Etsy use **automated 1688 discovery** for 20 brand-safe category groups.
-> Amazon uses **manual seller sourcing** — products from trusted sellers the user identifies.
+> **AS OF 2026-05-13: 3 active platforms (Amazon / eBay / Etsy).**
+> eBay and Etsy use **automated 1688 discovery** for 20 brand-safe category groups.
+> Amazon uses **automated 3C discovery + manual seller sourcing** — Task 1 runs for 12 Amazon-3C categories (see autostore root CLAUDE.md), and the user also identifies trusted seller stores manually.
 > See `BRAND_SAFE_CATEGORIES.md` for the full category-platform matrix.
+>
+> **AliExpress store `$ALIEXPRESS_STORE_ID` is PERMANENTLY CLOSED (2026-03-25).** Do not run scraping, translation, upload, or listing tasks for AliExpress. The `aliexpress/` and `ae_scrapper/` code is archived.
 
 ---
 
@@ -11,8 +13,8 @@
 
 | Platform | Status | Sourcing | Categories |
 |----------|--------|----------|------------|
-| **AliExpress** | **ACTIVE** | Automated 1688 pipeline | 20 brand-safe groups (see BRAND_SAFE_CATEGORIES.md) |
-| **Amazon** | **ACTIVE** | Manual seller sourcing | Any brand-safe category the seller carries |
+| ~~AliExpress~~ | **CLOSED (2026-03-25)** | — | — |
+| **Amazon** | **ACTIVE** | Automated (3C, 12 categories) + manual seller sourcing | 3C / Consumer Electronics |
 | **eBay** | **ACTIVE** | Automated 1688 pipeline | 20 brand-safe groups (see BRAND_SAFE_CATEGORIES.md) |
 | **Etsy** | **ACTIVE** | Automated 1688 pipeline | 19 brand-safe groups (no fitness accessories) |
 
