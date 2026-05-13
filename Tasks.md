@@ -363,3 +363,49 @@ Also: `--list`, `--stats`, `--search "keyword"` for inspection.
 | `auto_discovery` | Task 1 (blue-ocean, `brand_safe: false`) | aliexpress, ebay, etsy |
 | `manual_seller` | Task 1 (verified provider store) | from `providers.target_platforms` |
 | `legacy_3c` | Migration (old 3C products) | amazon |
+
+---
+
+## Downstream platform-export tasks (run from the Mac AutoStore client)
+
+After the shared 1688 source pipeline brings products to `status='ae_enriched'`, each platform has its own import + export task chain. These run via `TaskRunner` in the Mac app (see `mac/AutoStore/Sources/Views/TasksView.swift → LOCAL_TASKS`).
+
+### Amazon
+
+| Task | Script | Effect |
+|---|---|---|
+| `amazon-excel-gen` | `amazon/dist/tasks/task1-excel-gen.js` | Generate Amazon flat-file TSVs (one per product type) from `1688_source` + manually-sourced products. Output: `amazon/output/amazon-export-YYYY-MM-DD-{type}.txt`. |
+
+The Mac AutoStore chat macro `在 amazon 上发布新商品` / `post listings on amazon` runs this task then opens the Seller Central bulk-upload page.
+
+### eBay
+
+| Task | Script | Effect |
+|---|---|---|
+| `ebay-import` | `ebay/dist/tasks/import-from-1688source.js` | Pull `ae_enriched` products into `ebay_autostore.products` for eBay-specific category mapping. |
+| `ebay-csv-gen` | `ebay/dist/tasks/task1-csv-gen.js` | Generate eBay Seller Hub CSV from imported products. |
+| `ebay-list` | `ebay/dist/tasks/task3-single-list.js` | Browser-driven listing flow (for single-SKU products or special cases). |
+
+Chat macro `在 ebay 上发布新商品` runs `ebay-csv-gen`.
+
+### Etsy
+
+| Task | Script | Effect |
+|---|---|---|
+| `etsy-import` | `etsy/dist/tasks/import-from-1688source.js` | Pull `ae_enriched` products into `etsy_autostore.products`. |
+| `etsy-optimize` | `etsy/dist/tasks/optimize-copy.js` | SEO-optimize Etsy titles/tags via LLM (no UFLPA-banned terms, boutique tone). |
+| `etsy-draft` | `etsy/dist/tasks/create-draft-listings.js` | Create Etsy drafts via Open API v3 (createDraftListing + listing-image upload). |
+
+Chat macro `在 etsy 上发布新商品` runs `etsy-draft` (Etsy uses the API directly — no CSV upload step).
+
+### AliExpress (archived)
+
+| Task | Script | Status |
+|---|---|---|
+| `aliexpress-excel-gen` | `aliexpress/dist/tasks/task5-excel-gen.js` | **ARCHIVED** — AliExpress store closed permanently 2026-03-25. Code kept for reference. |
+
+### Brands
+
+| Task | Script | Effect |
+|---|---|---|
+| `sync-brands` | `1688_scrapper/dist/tasks/sync-brands-from-server.js` | Pull latest banned-brand list from the autostore backend into `1688_source.brand_list`. |
