@@ -1,8 +1,8 @@
 # Brand Safety & Compliance Strategy
 
 **Created:** 2026-03-22 · **Last reviewed:** 2026-05-13
-**Status:** Active (Amazon / eBay / Etsy). AliExpress closed 2026-03-25 — strategy preserved for historical reference and reuse on the other platforms.
-**Applies to:** Amazon, eBay, Etsy. (AliExpress columns/references retained for traceability.)
+**Status:** Active (AliExpress / Amazon / eBay / Etsy). AliExpress re-activated 2026-05-13.
+**Applies to:** AliExpress, Amazon, eBay, Etsy.
 
 ---
 

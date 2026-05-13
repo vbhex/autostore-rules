@@ -1,0 +1,5 @@
+Make AutoStore "";
+You'll drive the China Mac end-to-end: 
+type the prompt into AutoStore, 
+watch what happens (Chrome state + llama-server log),
+ iterate fixes if it fails, and report success.

@@ -94,12 +94,11 @@ Returns the full setup manifest — what the client needs to check and install.
     },
     {
       "name": "aliexpress",
-      "display_name": "AliExpress (archived)",
-      "description": "AliExpress store closed 2026-03-25 — setup wizard skips this project for new installs. Manifest entry retained for legacy traceability.",
+      "display_name": "AliExpress",
+      "description": "Excel generation and bulk upload to AliExpress Seller Center",
       "download_endpoint": "/api/setup/download/aliexpress",
       "database": "aliexpress_autostore",
-      "size_mb": null,
-      "archived": true
+      "size_mb": null
     },
     {
       "name": "ebay",

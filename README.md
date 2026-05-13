@@ -11,14 +11,14 @@ Shared, public knowledge for the AutoStore platform — read by autonomous Claud
 | `COMPUTER_USE_STRATEGY.md` | Why generic computer-use fails for quantized models and how annotated screenshots + macro tools fix it. |
 | `LOCAL_MODEL_STRATEGY.md` | On-device inference architecture: Qwen 2.5 7B Instruct Q4_K_M via llama.cpp + Metal GPU on the user's Mac. |
 | `BUSINESS_MODEL.md` | Revenue projections + market sizing under the distilled architecture. |
-| `MULTI_PLATFORM_CATEGORY_STRATEGY.md` | Which categories ship to which platforms — 3 active (Amazon / eBay / Etsy), AliExpress closed 2026-03-25. |
+| `MULTI_PLATFORM_CATEGORY_STRATEGY.md` | Which categories ship to which platforms — 4 active (AliExpress / Amazon / eBay / Etsy). |
 | `BRAND_SAFE_CATEGORIES.md` | The Phase-1 brand-safe matrix (20 category groups, structurally impossible to have IP issues). |
 | `CLIENT_SETUP_ARCHITECTURE.md` | Server-driven first-launch setup: manifest endpoint, dependency checks, schema initialization. |
 | `REFERENCE_DATA.md` | Central tables served via `/api/reference/*` — AE categories, brand DB, blue-ocean search terms. |
 | `Tasks.md` | Full reference for all 15 pipeline tasks (Task 1–12 + utilities) including the Mac-client downstream tasks. |
 | `Pre-Training-Sessions.md`, `training.txt` | Distilled session learnings + raw training data for future fine-tuning. |
 | `1688-source/` | 1688-specific rules (blue-ocean discovery, English-mode scraping). |
-| `aliexpress-store/` | AliExpress historical rules — store closed 2026-03-25. Kept for traceability. |
+| `aliexpress-store/` | AliExpress strategy — store re-activated 2026-05-13. |
 | `amazon-store/` | Amazon strategy (3C automated discovery + manual seller sourcing). |
 | `ebay-store/` | eBay strategy, seller constraints, shipping-fee strategy. |
 | `etsy-store/` | Etsy strategy. |
@@ -26,9 +26,8 @@ Shared, public knowledge for the AutoStore platform — read by autonomous Claud
 
 ## Current state (2026-05-13)
 
-- **Active platforms**: Amazon, eBay, Etsy
+- **Active platforms**: AliExpress (re-activated 2026-05-13), Amazon, eBay, Etsy
 - **Sourcing platform**: 1688 (China firewall — only the China MacBook accesses it)
-- **Closed**: AliExpress store `$ALIEXPRESS_STORE_ID` (since 2026-03-25)
 - **On-device model**: Qwen 2.5 7B Instruct Q4_K_M (~4.4 GB, Metal GPU)
 - **Macro library**: 30+ deterministic `PlatformTask` cases + 3 `.staticAnswer` macros
 - **Bench coverage**: 150+ regression cases in the in-app `BenchView` harness (Cmd+B)
