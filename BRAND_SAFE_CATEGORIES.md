@@ -1,9 +1,11 @@
 # Brand-Safe Categories — Phase 1 (2026-03-24)
 
-**Rule:** For AliExpress, eBay, and Etsy, we ONLY scrape and list brand-safe categories.
+**Rule:** For eBay and Etsy, we ONLY scrape and list brand-safe categories.
 These are product types that are **structurally impossible** to have brand/IP issues.
 
-Amazon uses a different strategy: manual seller sourcing (see ROOT_CLAUDE.md).
+Amazon uses a hybrid strategy: automated 3C discovery (12 categories — see ROOT_CLAUDE.md) + manual seller sourcing alongside.
+
+> **Note (2026-05-13):** AliExpress columns below are kept for historical reference. The AliExpress store closed permanently on 2026-03-25; do not run any scraping/listing for AliExpress.
 
 ## Why Brand-Safe First?
 
