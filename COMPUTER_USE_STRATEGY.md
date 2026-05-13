@@ -11,7 +11,9 @@ Generic computer use (look at screenshot → estimate coords → click) fails wi
 
 ## The Strategy: Narrow the Task Space
 
-AutoStore only needs ~15 ecommerce workflows on 4 platforms. This is not a general agent problem. The solution is to **reduce what the model has to figure out**, not to wait for better models.
+AutoStore covers ~30 deterministic platform-task macros on 3 active platforms (Amazon / eBay / Etsy, plus 1688 for sourcing). This is not a general agent problem. The solution is to **reduce what the model has to figure out**, not to wait for better models.
+
+> Status as of 2026-05-13: The deterministic Swift router emits **30+ PlatformTask** cases. 150+ bench cases confirm routing accuracy. The 7B is only consulted for free-form / out-of-scope queries.
 
 ---
 
