@@ -156,7 +156,7 @@ List exactly what you added so the human owner knows what shipped.
 ## Three ways to scale the recording phase
 
 ### A. Manual, by sibling sessions (active now)
-Each session encodes what it learns. Slow but honest. **15 macros in 2 weeks** is the working target.
+Each session encodes what it learns. Slow but honest. **As of 2026-05-13 the macro library has reached 30+ deterministic PlatformTask cases + 3 staticAnswer macros, with 150+ regression tests in the in-app BenchView** — the working target of "15 macros in 2 weeks" was hit and surpassed within the first session day.
 
 ### B. Active distillation (planned)
 When the weak model fails to route a request to any existing macro, AutoStore's backend pings the Claude API server-side. Claude generates a one-shot sequence; AutoStore caches it keyed by request hash. Future identical requests hit the cache.
