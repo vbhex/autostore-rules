@@ -409,3 +409,61 @@ Chat macro `在 etsy 上发布新商品` runs `etsy-draft` (Etsy uses the API di
 | Task | Script | Effect |
 |---|---|---|
 | `sync-brands` | `1688_scrapper/dist/tasks/sync-brands-from-server.js` | Pull latest banned-brand list from the autostore backend into `1688_source.brand_list`. |
+
+---
+
+## Mac client `PlatformTask` macro library (2026-05-13)
+
+The on-device deterministic router (`mac/AutoStore/Sources/Services/IntentRouter.swift`) emits one of these `PlatformTask` cases. The corresponding URL lives in `PlatformKnowledge.swift` → `PlatformURL.url(platform:task:)`. Bench coverage in `BenchView.swift`.
+
+### Per-platform coverage matrix
+
+| Task | Amazon | eBay | Etsy | 1688 |
+|---|:---:|:---:|:---:|:---:|
+| `.orders` | ✅ | ✅ | ✅ | ✅ |
+| `.ordersToday` | ✅ | ✅ | — | — |
+| `.listings` | ✅ | ✅ | ✅ | ✅ (work dashboard) |
+| `.upload` | ✅ | ✅ | — | — |
+| `.bulkEditor` | — | ✅ | — | — |
+| `.messages` | ✅ | ✅ | ✅ | ✅ (Wangwang) |
+| `.violations` | ✅ | ✅ | ✅ | — |
+| `.analytics` | ✅ | ✅ | ✅ | — |
+| `.shipping` | ✅ | ✅ | ✅ | — |
+| `.shippingProfiles` | — | — | ✅ | — |
+| `.international` | — | ✅ | — | — |
+| `.returns` | ✅ | ✅ | — | ✅ (退款) |
+| `.disputes` | ✅ | ✅ | ✅ | — |
+| `.feedback` | ✅ | ✅ | ✅ | — |
+| `.inventory` | ✅ | — | — | — |
+| `.inventoryIPI` | ✅ | — | — | — |
+| `.suppressed`, `.fixIssues` | ✅ | — | — | — |
+| `.fbaShipments` | ✅ | — | — | — |
+| `.reports` | ✅ | ✅ | — | — |
+| `.restrictions` | — | ✅ | — | — |
+| `.accountHealth` | ✅ | ✅ | ✅ | — |
+| `.pricing` | ✅ | — | — | — |
+| `.ads` | ✅ | ✅ | ✅ | — |
+| `.promotions` | ✅ | ✅ | ✅ | — |
+| `.vacation` | — | — | ✅ | — |
+| `.shopSettings` | — | ✅ | ✅ | — |
+| `.taxes` | ✅ | ✅ | ✅ | — |
+| `.addProduct` | ✅ | — | — | — |
+| `.gtinExemption` | ✅ | — | — | — |
+| `.brandRegistry` | ✅ | — | — | — |
+| `.voiceOfCustomer` | ✅ | — | — | — |
+| `.pattern` | — | — | ✅ | — |
+| `.search` | — | — | — | ✅ |
+| `.wallet` | ✅ | ✅ | ✅ | ✅ |
+| `.notifications` | ✅ | — | — | — |
+| `.favorites` | — | ✅ | — | ✅ |
+| `.dashboard` | ✅ | ✅ | ✅ | ✅ |
+
+### `.staticAnswer` macros (canned LLM-bypass replies)
+
+| Macro | Trigger | Returns |
+|---|---|---|
+| `intro` | 你好 + 介绍/能做 / what can you do / 介绍一下 / 有哪些功能 | 7-section catalog of all platform tasks |
+| `identity` | 你的模型 / what model are you / 模型参数 (+ self-ref) | Qwen 2.5 7B Q4_K_M ground-truth |
+| `whatsnew` | 更新内容 / what's new / release notes | Current-build release-notes summary |
+
+Total: 38 `PlatformTask` cases × per-platform wiring, plus 3 `.staticAnswer` macros. **162 regression cases** in the in-app bench harness (Cmd+B).
